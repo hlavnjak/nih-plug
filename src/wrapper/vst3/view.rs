@@ -376,19 +376,33 @@ impl<P: Vst3Plugin> IPlugView for WrapperView<P> {
     unsafe fn on_size(&self, new_size: *mut ViewRect) -> tresult {
         check_null_ptr!(new_size);
 
-        // TODO: Implement Host->Plugin resizing
-        let (unscaled_width, unscaled_height) = self.editor.lock().size();
-        let scaling_factor = self.scaling_factor.load(Ordering::Relaxed);
-        let (editor_width, editor_height) = (
-            (unscaled_width as f32 * scaling_factor).round() as i32,
-            (unscaled_height as f32 * scaling_factor).round() as i32,
-        );
-
         let width = (*new_size).right - (*new_size).left;
         let height = (*new_size).bottom - (*new_size).top;
-        if width == editor_width && height == editor_height {
+        let scaling_factor = self.scaling_factor.load(Ordering::Relaxed);
+
+        // Convert from physical pixels (host) to logical pixels (plugin)
+        let logical_width = ((width as f32) / scaling_factor).round() as u32;
+        let logical_height = ((height as f32) / scaling_factor).round() as u32;
+
+        println!("VST3 on_size called: physical={}x{}, logical={}x{}, scale={}",
+                width, height, logical_width, logical_height, scaling_factor);
+
+        // Check if this matches our current size
+        let (current_width, current_height) = self.editor.lock().size();
+        println!("Current editor size: {}x{}", current_width, current_height);
+
+        if logical_width == current_width && logical_height == current_height {
+            println!("Size matches current, returning kResultOk");
+            return kResultOk;
+        }
+
+        // Ask the editor if it accepts this resize
+        println!("Asking editor to resize to: {}x{}", logical_width, logical_height);
+        if self.editor.lock().resize(logical_width, logical_height) {
+            println!("Editor accepted resize, returning kResultOk");
             kResultOk
         } else {
+            println!("Editor rejected resize, returning kResultFalse");
             kResultFalse
         }
     }

@@ -173,6 +173,16 @@ where
     fn param_values_changed(&self) {
         // Same
     }
+
+    fn resize(&self, width: u32, height: u32) -> bool {
+        // Update the egui state with the new size
+        self.egui_state.size.store((width, height));
+
+        // Clear any pending resize request since the host is setting our size
+        self.egui_state.requested_size.store(None);
+
+        true
+    }
 }
 
 /// The window handle used for [`EguiEditor`].

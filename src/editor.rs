@@ -69,11 +69,20 @@ pub trait Editor: Send {
     /// loaded.
     fn param_values_changed(&self);
 
+    /// Called when the host requests the plugin window to be resized to a specific size.
+    /// This allows the plugin to update its internal state when the host changes the window size.
+    /// The size is provided in logical pixels (before DPI scaling).
+    /// Returns true if the resize was accepted, false if it should be rejected.
+    ///
+    /// The default implementation returns false, rejecting all host-initiated resizes.
+    fn resize(&self, _width: u32, _height: u32) -> bool {
+        false
+    }
+
     // TODO: Reconsider adding a tick function here for the Linux `IRunLoop`. To keep this platform
     //       and API agnostic, add a way to ask the GuiContext if the wrapper already provides a
     //       tick function. If it does not, then the Editor implementation must handle this by
     //       itself. This would also need an associated `PREFERRED_FRAME_RATE` constant.
-    // TODO: Host->Plugin resizing
 }
 
 /// A raw window handle for platform and GUI framework agnostic editors. This implements
