@@ -439,8 +439,7 @@ impl<P: Vst3Plugin> IPlugView for WrapperView<P> {
     }
 
     unsafe fn can_resize(&self) -> tresult {
-        // TODO: Implement Host->Plugin resizing
-        kResultFalse
+        kResultOk
     }
 
     unsafe fn check_size_constraint(&self, rect: *mut ViewRect) -> tresult {
