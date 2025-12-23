@@ -2712,8 +2712,7 @@ impl<P: ClapPlugin> Wrapper<P> {
     }
 
     unsafe extern "C" fn ext_gui_can_resize(_plugin: *const clap_plugin) -> bool {
-        // TODO: Implement Host->Plugin GUI resizing
-        false
+        true
     }
 
     unsafe extern "C" fn ext_gui_get_resize_hints(
@@ -2738,20 +2737,31 @@ impl<P: ClapPlugin> Wrapper<P> {
         width: u32,
         height: u32,
     ) -> bool {
-        // TODO: Implement Host->Plugin GUI resizing
         // TODO: The host will also call this if an asynchronous (on Linux) resize request fails
         check_null_ptr!(false, plugin, (*plugin).plugin_data);
         let wrapper = &*((*plugin).plugin_data as *const Self);
 
-        let (unscaled_width, unscaled_height) =
-            wrapper.editor.borrow().as_ref().unwrap().lock().size();
         let scaling_factor = wrapper.editor_scaling_factor.load(Ordering::Relaxed);
-        let (editor_width, editor_height) = (
-            (unscaled_width as f32 * scaling_factor).round() as u32,
-            (unscaled_height as f32 * scaling_factor).round() as u32,
+
+        // Convert from physical pixels (host) to logical pixels (plugin)
+        let logical_width = ((width as f32) / scaling_factor).round() as u32;
+        let logical_height = ((height as f32) / scaling_factor).round() as u32;
+
+        nih_debug_assert!(
+            wrapper.editor.borrow().is_some(),
+            "Received a resize request without an active editor"
         );
 
-        width == editor_width && height == editor_height
+        // Check if this matches our current size
+        let (current_width, current_height) =
+            wrapper.editor.borrow().as_ref().unwrap().lock().size();
+
+        if logical_width == current_width && logical_height == current_height {
+            return true;
+        }
+
+        // Ask the editor if it accepts this resize
+        wrapper.editor.borrow().as_ref().unwrap().lock().resize(logical_width, logical_height)
     }
 
     unsafe extern "C" fn ext_gui_set_parent(

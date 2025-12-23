@@ -384,25 +384,17 @@ impl<P: Vst3Plugin> IPlugView for WrapperView<P> {
         let logical_width = ((width as f32) / scaling_factor).round() as u32;
         let logical_height = ((height as f32) / scaling_factor).round() as u32;
 
-        println!("VST3 on_size called: physical={}x{}, logical={}x{}, scale={}",
-                width, height, logical_width, logical_height, scaling_factor);
-
         // Check if this matches our current size
         let (current_width, current_height) = self.editor.lock().size();
-        println!("Current editor size: {}x{}", current_width, current_height);
 
         if logical_width == current_width && logical_height == current_height {
-            println!("Size matches current, returning kResultOk");
             return kResultOk;
         }
 
         // Ask the editor if it accepts this resize
-        println!("Asking editor to resize to: {}x{}", logical_width, logical_height);
         if self.editor.lock().resize(logical_width, logical_height) {
-            println!("Editor accepted resize, returning kResultOk");
             kResultOk
         } else {
-            println!("Editor rejected resize, returning kResultFalse");
             kResultFalse
         }
     }
